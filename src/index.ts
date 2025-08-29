@@ -1,5 +1,8 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
+import cron from "node-cron";
+
+const INTERVAL = 1;
 
 import config from "../config.json";
 const url = config.url;
@@ -15,8 +18,8 @@ if (!url) {
   process.exit(1);
 }
 
-(async () => {
-  const browser = await puppeteer.launch({ headless: true });
+const checkPrice = async () => {
+  const browser = await puppeteer.launch({ headless: false });
 
   const page = await browser.newPage();
 
@@ -54,4 +57,9 @@ if (!url) {
   console.log("Nome e preço salvos com suceso.");
 
   await browser.close();
-})();
+};
+
+cron.schedule(`*/${INTERVAL} * * * *`, () => {
+  console.log(`Executando a cada ${INTERVAL} minutos...`);
+  checkPrice();
+});
