@@ -1,0 +1,17 @@
+{
+  "name": "price-alert-bot",
+  "version": "1.0.0",
+  "description": "A bot that tracks product prices and notifies you when they drop.",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx watch src/index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^24.17.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
