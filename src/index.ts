@@ -6,6 +6,8 @@ const url = config.url;
 
 const productTitleId = "#productTitle";
 const priceClass = "span.a-price-whole";
+const priceDecimalClass = "span.a-price-fraction";
+const imageSelector = "#landingImage";
 
 if (!url) {
   console.error("Você precisa fornecer uma url.");
@@ -14,7 +16,7 @@ if (!url) {
 }
 
 (async () => {
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
 
   const page = await browser.newPage();
 
@@ -22,18 +24,29 @@ if (!url) {
 
   const nameSelector = productTitleId;
   await page.waitForSelector(nameSelector);
-  const name = await page.$eval(nameSelector, (el) => el.innerHTML.trim());
+  const name = await page.$eval(nameSelector, (el) => el.textContent.trim());
 
   const priceSelector = priceClass;
-
   await page.waitForSelector(priceSelector);
-  const price = await page.$eval(priceSelector, (el) => el.innerHTML.trim());
+  const price = await page.$eval(priceSelector, (el) => el.textContent.trim());
+
+  const priceDecimalSelector = priceDecimalClass;
+  await page.waitForSelector(priceDecimalSelector);
+  const decimal = await page.$eval(priceDecimalSelector, (el) =>
+    el.textContent.trim()
+  );
+
+  await page.waitForSelector(imageSelector);
+  const imageUrl = await page.$eval(imageSelector, (el) =>
+    el.getAttribute("src")
+  );
 
   const productData = {
     url,
     name,
-    price,
+    price: `${price}${decimal}`,
     timestamp: new Date().toISOString(),
+    imageUrl,
   };
 
   fs.writeFileSync("product_price.json", JSON.stringify(productData, null, 2));
