@@ -70,12 +70,12 @@ const checkPrice = async () => {
 
   console.log(`💲 Preço atual: R$${currentPrice}`);
 
-  // if (lastPrice && currentPrice < lastPrice) {
-  await sendDiscordMessage({
-    content: `⬇️ O preço do produto *${name}* caiu!\n\nAgora está em: *R$${currentPrice}*`,
-    imageUrl: imageUrl!,
-  });
-  // }
+  if (lastPrice && currentPrice < lastPrice) {
+    await sendDiscordMessage({
+      content: `⬇️ O preço do produto *${name}* caiu!\n\nAgora está em: *R$${currentPrice}*`,
+      imageUrl: imageUrl!,
+    });
+  }
 
   lastPrice = currentPrice;
 
