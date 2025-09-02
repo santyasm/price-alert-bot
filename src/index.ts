@@ -2,7 +2,6 @@ import "dotenv/config";
 import puppeteer from "puppeteer";
 import cron from "node-cron";
 import fetch from "node-fetch";
-
 import config from "../config.json";
 
 const { url, interval } = config;
@@ -36,9 +35,17 @@ export const sendDiscordMessage = async (params: {
       }),
     });
 
-    return response.json();
+    if (response.ok) {
+      console.log("✅ Mensagem enviada com sucesso!");
+      return true;
+    } else {
+      const text = await response.text();
+      console.error("❌ Erro ao enviar mensagem:", response.status, text);
+      return false;
+    }
   } catch (error) {
     console.error("Erro ao enviar mensagem para o Discord:", error);
+    return false;
   }
 };
 
@@ -63,12 +70,12 @@ const checkPrice = async () => {
 
   console.log(`💲 Preço atual: R$${currentPrice}`);
 
-  if (lastPrice && currentPrice < lastPrice) {
-    await sendDiscordMessage({
-      content: `⬇️ O preço do produto *${name}* caiu!\n\nAgora está em: *R$${currentPrice}*`,
-      imageUrl: imageUrl!,
-    });
-  }
+  // if (lastPrice && currentPrice < lastPrice) {
+  await sendDiscordMessage({
+    content: `⬇️ O preço do produto *${name}* caiu!\n\nAgora está em: *R$${currentPrice}*`,
+    imageUrl: imageUrl!,
+  });
+  // }
 
   lastPrice = currentPrice;
 
