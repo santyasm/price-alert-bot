@@ -5,13 +5,14 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/index.ts"
+    "start": "tsx watch src/index.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^17.2.1",
     "node-cron": "^4.2.1",
+    "node-fetch": "^3.3.2",
     "puppeteer": "^24.17.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"

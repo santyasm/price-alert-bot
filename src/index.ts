@@ -1,94 +1,81 @@
 import "dotenv/config";
 import puppeteer from "puppeteer";
-import fs from "fs";
 import cron from "node-cron";
-
-const INTERVAL = 1;
+import fetch from "node-fetch";
 
 import config from "../config.json";
-const url = config.url;
+
+const { url, interval } = config;
 
 const productTitleId = "#productTitle";
 const priceClass = "span.a-price-whole";
 const priceDecimalClass = "span.a-price-fraction";
 const imageSelector = "#landingImage";
 
-if (!url) {
-  console.error("Você precisa fornecer uma url.");
+let lastPrice: number | null = null;
 
-  process.exit(1);
-}
-
-const sendTelegramMessage = async (message: {
-  photo: string;
-  caption: string;
+export const sendDiscordMessage = async (params: {
+  content: string;
+  imageUrl?: string;
 }) => {
-  try {
-    const url = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendPhoto`;
+  const { content, imageUrl } = params;
 
-    const response = await fetch(url, {
+  try {
+    const response = await fetch(process.env.DISCORD_WEBHOOK_URL!, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: process.env.CHAT_ID,
-        photo: message.photo,
-        caption: message.caption,
-        parse_mode: "Markdown",
+        content,
+        embeds: imageUrl
+          ? [
+              {
+                image: { url: imageUrl },
+              },
+            ]
+          : [],
       }),
     });
 
     return response.json();
   } catch (error) {
-    console.error(error);
+    console.error("Erro ao enviar mensagem para o Discord:", error);
   }
 };
 
 const checkPrice = async () => {
-  const browser = await puppeteer.launch({ headless: false });
-
+  const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
   await page.goto(url, { waitUntil: "load" });
 
-  const nameSelector = productTitleId;
-  await page.waitForSelector(nameSelector);
-  const name = await page.$eval(nameSelector, (el) => el.textContent.trim());
-
-  const priceSelector = priceClass;
-  await page.waitForSelector(priceSelector);
-  const price = await page.$eval(priceSelector, (el) => el.textContent.trim());
-
-  const priceDecimalSelector = priceDecimalClass;
-  await page.waitForSelector(priceDecimalSelector);
-  const decimal = await page.$eval(priceDecimalSelector, (el) =>
+  const name = await page.$eval(productTitleId, (el) => el.textContent.trim());
+  const price = await page.$eval(priceClass, (el) => el.textContent.trim());
+  const decimal = await page.$eval(priceDecimalClass, (el) =>
     el.textContent.trim()
   );
-
-  await page.waitForSelector(imageSelector);
   const imageUrl = await page.$eval(imageSelector, (el) =>
     el.getAttribute("src")
   );
 
-  const productData = {
-    url,
-    name,
-    price: `${price}${decimal}`,
-    timestamp: new Date().toISOString(),
-    imageUrl,
-  };
+  const currentPrice = parseFloat(
+    `${price}${decimal}`.replace(".", "").replace(",", ".")
+  );
 
-  fs.writeFileSync("product_price.json", JSON.stringify(productData, null, 2));
-  console.log("Nome e preço salvos com suceso.");
+  console.log(`💲 Preço atual: R$${currentPrice}`);
 
-  await sendTelegramMessage({
-    caption: `O preço do produto *${productData.name}* atualmente está de: *R$${productData.price}*`,
-    photo: productData.imageUrl!,
-  });
+  if (lastPrice && currentPrice < lastPrice) {
+    await sendDiscordMessage({
+      content: `⬇️ O preço do produto *${name}* caiu!\n\nAgora está em: *R$${currentPrice}*`,
+      imageUrl: imageUrl!,
+    });
+  }
+
+  lastPrice = currentPrice;
 
   await browser.close();
 };
 
-cron.schedule(`*/${INTERVAL} * * * *`, () => {
-  console.log(`Executando a cada ${INTERVAL} minutos...`);
+cron.schedule(`*/${interval} * * * *`, () => {
+  console.log(`⏰ Verificando a cada ${interval} minutos...`);
   checkPrice();
 });
